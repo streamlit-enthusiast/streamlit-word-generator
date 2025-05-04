@@ -22,26 +22,31 @@ def get_random_words(words: pd.Series, n: int) -> list:
 
 def get_word_definition(word):
     """
-    Returns the definition of a word using the Duden API.
+    Returns the definition of the given word using the MultiDictionary API.
     """
-    words = duden.search(word)
+    # First try get:
+    word_obj = duden.get(word)
+    if word_obj:
+        return word_obj.meaning_overview
 
-    if len(words) == 0:
+    # If not found try search:
+    word_obj = duden.search(word)
+    if len(word_obj) == 0:
         return "Keine Definition gefunden."
 
-    if len(words) == 1:
-        word = words[0]
-        return word.meaning_overview  # type: ignore
+    if len(word_obj) == 1:
+        chosen_word = word_obj[0]
+        return chosen_word.meaning_overview  # type: ignore
     else:
         freq_df = pd.DataFrame(
             {
-                "id": range(len(words)),
-                "frequency": [word.frequency for word in words],  # type: ignore
+                "id": range(len(word_obj)),
+                "frequency": [word.frequency for word in word_obj],  # type: ignore
             }
         )
         freq_df = freq_df.sort_values(by="frequency", ascending=False)
         most_frequent_word_index = freq_df.head(1).id.values[0]
-        return words[most_frequent_word_index].meaning_overview
+        return list(word_obj[most_frequent_word_index].meaning_overview)[0]
 
 
 def main():
