@@ -1,6 +1,6 @@
+import duden
 import pandas as pd
 import streamlit as st
-from PyMultiDictionary import MultiDictionary
 
 
 @st.cache_resource(show_spinner="Wörter werden geladen...")
@@ -20,16 +20,28 @@ def get_random_words(words: pd.Series, n: int) -> list:
     return words.sample(n).tolist()
 
 
-def get_word_definition(word, dictionary):
+def get_word_definition(word):
     """
-    Returns the definition of the given word using the MultiDictionary API.
+    Returns the definition of a word using the Duden API.
     """
-    dictionary = MultiDictionary()
-    definition = dictionary.meaning("de", word)[1]  # type: ignore
-    if len(definition) == 0:
+    words = duden.search(word)
+
+    if len(words) == 0:
         return "Keine Definition gefunden."
+
+    if len(words) == 1:
+        word = words[0]
+        return word.meaning_overview  # type: ignore
     else:
-        return definition.split(". ")[1]  # type: ignore
+        freq_df = pd.DataFrame(
+            {
+                "id": range(len(words)),
+                "frequency": [word.frequency for word in words],  # type: ignore
+            }
+        )
+        freq_df = freq_df.sort_values(by="frequency", ascending=False)
+        most_frequent_word_index = freq_df.head(1).id.values[0]
+        return words[most_frequent_word_index].meaning_overview
 
 
 def main():
@@ -41,9 +53,9 @@ def main():
     if "substantives" not in st.session_state:
         st.session_state["substantives"] = load_data()
 
-    # Load dictionary
-    if "dictionary" not in st.session_state:
-        st.session_state["dictionary"] = MultiDictionary()
+    # # Load dictionary
+    # if "dictionary" not in st.session_state:
+    #     st.session_state["dictionary"] = MultiDictionary()
 
     # Get the number of words to quiz on from the user
     with st.form("word_form"):
@@ -66,7 +78,7 @@ def main():
     st.write("Das sind deine Wörter:")
     st.info("Bewege deinen Mauszeiger über die Wörter, um die Bedeutung zu sehen.")
     for word in random_words:
-        meaning = get_word_definition(word, st.session_state["dictionary"])
+        meaning = get_word_definition(word)
         st.markdown(
             f"""
             <span title="{meaning}">{word}</span>
