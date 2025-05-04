@@ -83,7 +83,10 @@ def main():
     st.write("Das sind deine Wörter:")
     st.info("Bewege deinen Mauszeiger über die Wörter, um die Bedeutung zu sehen.")
     for word in random_words:
-        meaning = get_word_definition(word).replace("\n", " ")  # type: ignore
+        try:
+            meaning = get_word_definition(word).replace("\n", " ")  # type: ignore
+        except:
+            meaning = get_word_definition(word)
         st.markdown(
             rf"""
             <span title="{meaning}">{word}</span>
